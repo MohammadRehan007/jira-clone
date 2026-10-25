@@ -18,7 +18,13 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CLIENT_URL
+        value: "https://jira-clone-phi-blond.vercel.app"
+      - key: BREVO_API_KEY
         sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: "Jira Engine"
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
