@@ -28,7 +28,7 @@ class MailService {
   getTransporter() {
     const host = process.env.SMTP_HOST;
     const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : '';
+    const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '';
 
     if (host && user) {
       return nodemailer.createTransport({
