@@ -1,0 +1,162 @@
+name: CI/CD Pipeline (Render Backend & Vercel Frontend)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # ==========================================
+  # 1. Backend CI (Build, Lint & Syntax Check)
+  # ==========================================
+  backend-ci:
+    name: Backend CI (Node.js & Express)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Server Dependencies
+        run: npm ci || npm install
+
+      - name: Verify Backend Code Integrity & Syntax
+        run: |
+          node -c src/server.js
+          node -c src/config/cloudinary.js
+          node -c src/middleware/upload.js
+          node -c src/controllers/uploadController.js
+          node -c src/controllers/ticketController.js
+          echo "✅ Backend syntax verification passed!"
+
+  # ==========================================
+  # 2. Frontend CI (Vite Bundle Build)
+  # ==========================================
+  frontend-ci:
+    name: Frontend CI (React & Vite Build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Client Dependencies
+        run: npm ci || npm install
+
+      - name: Build Production Frontend Bundle
+        run: npm run build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-production-dist
+          path: client/dist
+          retention-days: 7
+
+  # ==========================================
+  # 3. Deploy Backend to Render
+  # ==========================================
+  deploy-backend-render:
+    name: Deploy Backend to Render
+    needs: [backend-ci, frontend-ci]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render Deploy Hook
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_HOOK" ]; then
+            echo "⚠️ [Warning] RENDER_DEPLOY_HOOK_URL secret is not configured in GitHub Secrets."
+            echo "ℹ️ Please configure RENDER_DEPLOY_HOOK_URL in repository Settings -> Secrets and variables -> Actions."
+            exit 0
+          fi
+
+          echo "🚀 Triggering Render backend deployment via deploy hook..."
+          HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" -X POST "$RENDER_HOOK")
+          echo "Render response HTTP Status: $HTTP_STATUS"
+          cat response.txt
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Render backend deployment successfully triggered!"
+          else
+            echo "❌ Render deployment hook failed with status $HTTP_STATUS"
+            exit 1
+          fi
+
+  # ==========================================
+  # 4. Deploy Frontend to Vercel
+  # ==========================================
+  deploy-frontend-vercel:
+    name: Deploy Frontend to Vercel
+    needs: [backend-ci, frontend-ci]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Deploy to Vercel (CLI or Deploy Hook)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          # Option A: If Vercel Deploy Hook URL is provided
+          if [ -n "$VERCEL_HOOK" ]; then
+            echo "🚀 Triggering Vercel deployment via Deploy Hook..."
+            HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" -X POST "$VERCEL_HOOK")
+            echo "Vercel Deploy Hook HTTP Status: $HTTP_STATUS"
+            cat response.txt
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+              echo "✅ Vercel deployment successfully triggered via hook!"
+              exit 0
+            else
+              echo "❌ Vercel hook failed with status $HTTP_STATUS"
+              exit 1
+            fi
+          fi
+
+          # Option B: If Vercel Token & Project IDs are provided
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "🚀 Deploying to Vercel via Vercel CLI..."
+            npm install -g vercel@latest
+            cd client
+            npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+            npx vercel build --prod --token=$VERCEL_TOKEN
+            npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+            echo "✅ Vercel production deployment completed successfully!"
+            exit 0
+          fi
+
+          echo "⚠️ [Warning] Neither VERCEL_TOKEN nor VERCEL_DEPLOY_HOOK_URL is set in GitHub Secrets."
+          echo "ℹ️ Add either VERCEL_DEPLOY_HOOK_URL or (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID) to repository Secrets."

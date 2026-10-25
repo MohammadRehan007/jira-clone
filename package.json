@@ -1,0 +1,20 @@
+{
+  "name": "jira-clone-monorepo",
+  "version": "1.0.0",
+  "description": "Production-grade Jira Ticketing & Sprint Management System",
+  "main": "server/src/server.js",
+  "scripts": {
+    "start": "node server/src/server.js",
+    "server": "npm run start --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["jira", "ticketing", "sprint", "kanban", "nodemailer", "react", "express", "mongodb"],
+  "author": "Antigravity",
+  "license": "ISC"
+}
