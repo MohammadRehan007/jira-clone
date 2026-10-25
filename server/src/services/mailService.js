@@ -31,6 +31,19 @@ class MailService {
     const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '';
 
     if (host && user) {
+      if (host.includes('gmail') || user.endsWith('@gmail.com')) {
+        return nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user,
+            pass
+          },
+          connectionTimeout: 8000,
+          greetingTimeout: 8000,
+          socketTimeout: 8000
+        });
+      }
+
       return nodemailer.createTransport({
         host,
         port: parseInt(process.env.SMTP_PORT || '587'),
@@ -38,7 +51,10 @@ class MailService {
         auth: {
           user,
           pass
-        }
+        },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 8000
       });
     }
     return this.transporter;
