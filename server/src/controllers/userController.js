@@ -47,14 +47,18 @@ const createUser = async (req, res, next) => {
       avatar
     });
 
-    // Send Welcome Credentials Email asynchronously
-    mailService.sendWelcomeUserEmail({
-      name: user.name,
-      email: user.email,
-      password: initialPassword,
-      role: user.role,
-      createdBy: req.user
-    }).catch(err => console.error('[Welcome Email Error]', err.message));
+    // Send Welcome Credentials Email
+    try {
+      await mailService.sendWelcomeUserEmail({
+        name: user.name,
+        email: user.email,
+        password: initialPassword,
+        role: user.role,
+        createdBy: req.user
+      });
+    } catch (err) {
+      console.error('[Welcome Email Error]', err.message);
+    }
 
     res.status(201).json({
       _id: user._id,
