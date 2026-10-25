@@ -12,6 +12,12 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: "Jira Engine"
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

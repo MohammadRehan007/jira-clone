@@ -60,16 +60,61 @@ class MailService {
     return this.transporter;
   }
 
+  async sendViaBrevoApi({ to, subject, html }) {
+    const toList = (Array.isArray(to) ? to : to.split(','))
+      .map(email => (typeof email === 'string' ? email.trim() : email?.email?.trim()))
+      .filter(Boolean)
+      .map(email => ({ email }));
+
+    if (toList.length === 0) return;
+
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER;
+    const senderName = process.env.BREVO_SENDER_NAME || 'Jira Engine';
+
+    const payload = {
+      sender: { name: senderName, email: senderEmail },
+      to: toList,
+      subject: `[Jira Notification] ${subject}`,
+      htmlContent: html
+    };
+
+    const rawKey = process.env.BREVO_API_KEY || '';
+    const apiKey = rawKey.replace(/^BREVO_API_KEY=/, '').trim();
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Brevo API Error (${response.status}): ${JSON.stringify(data)}`);
+    }
+
+    console.log(`✉️ [Brevo Mail Sent] Subject: "${subject}" | To: ${toList.map(t => t.email).join(', ')} | ID: ${data.messageId}`);
+    return data;
+  }
+
   async sendMail({ to, subject, html }) {
     try {
+      if (!to || (Array.isArray(to) && to.length === 0)) return;
+
+      // Prioritize Brevo REST API (HTTPS port 443 - works reliably on Render free tier)
+      if (process.env.BREVO_API_KEY) {
+        return await this.sendViaBrevoApi({ to, subject, html });
+      }
+
       let activeTransporter = this.getTransporter();
       if (!activeTransporter) {
         await this.initFallbackTransporter();
         activeTransporter = this.transporter;
       }
       if (!activeTransporter) return;
-
-      if (!to || (Array.isArray(to) && to.length === 0)) return;
 
       const recipients = Array.isArray(to) ? to.join(', ') : to;
       const from = process.env.SMTP_FROM || '"Jira Ticketing System" <no-reply@jira.local>';
