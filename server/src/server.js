@@ -43,10 +43,18 @@ const PORT = process.env.PORT || 5000;
 
 // Initialize Database and Start Server
 const startServer = async () => {
-  await connectDB();
-  await seedInitialData();
+  try {
+    const isConnected = await connectDB();
+    if (isConnected) {
+      await seedInitialData().catch((err) =>
+        console.warn('[Seed Warning]', err.message)
+      );
+    }
+  } catch (err) {
+    console.error('[Database Init Error]', err.message);
+  }
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Jira Express Server running on port ${PORT} [Mode: ${process.env.NODE_ENV || 'development'}]`);
   });
 };
