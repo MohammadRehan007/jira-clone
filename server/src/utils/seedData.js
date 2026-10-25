@@ -5,25 +5,25 @@ const Ticket = require('../models/Ticket');
 
 const seedInitialData = async () => {
   try {
-    // Ensure default Admin account always exists with admin@gmail.com / password@12345
+    // Ensure default Admin account always exists with admin@gmail.com / Password@12345
     let adminUser = await User.findOne({ email: 'admin@gmail.com' });
     if (!adminUser) {
       const existingAdmin = await User.findOne({ role: 'Admin' });
       if (existingAdmin) {
         existingAdmin.email = 'admin@gmail.com';
-        existingAdmin.password = 'password@12345';
+        existingAdmin.password = 'Password@12345';
         await existingAdmin.save();
-        console.log('✅ [Seed] Updated existing Admin user credentials to admin@gmail.com / password@12345');
+        console.log('✅ [Seed] Updated existing Admin user credentials to admin@gmail.com / Password@12345');
       } else {
         await User.create({
           name: 'System Admin',
           email: 'admin@gmail.com',
-          password: 'password@12345',
+          password: 'Password@12345',
           role: 'Admin',
           department: 'Management',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
         });
-        console.log('✅ [Seed] Created default Admin user (admin@gmail.com / password@12345)');
+        console.log('✅ [Seed] Created default Admin user (admin@gmail.com / Password@12345)');
       }
     }
 
