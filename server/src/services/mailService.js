@@ -172,8 +172,19 @@ class MailService {
     `;
   }
 
+  getClientUrl() {
+    let url = process.env.CLIENT_URL;
+    if (!url || (url.includes('localhost') && process.env.NODE_ENV === 'production')) {
+      return 'https://jira-clone-phi-blond.vercel.app';
+    }
+    return (url || 'https://jira-clone-phi-blond.vercel.app').replace(/\/+$/, '');
+  }
+
   async sendTicketAssignedEmail({ ticket, assignee, reporter }) {
     if (!assignee || !assignee.email) return;
+
+    const clientUrl = this.getClientUrl();
+    const boardUrl = `${clientUrl}/board`;
 
     const title = `Ticket Assigned: ${ticket.ticketKey}`;
     const body = `
@@ -187,6 +198,11 @@ class MailService {
         <li><strong>Status:</strong> ${ticket.status}</li>
       </ul>
       <p><strong>Description:</strong> ${ticket.description || 'No description provided.'}</p>
+      <div style="margin-top: 18px;">
+        <a href="${boardUrl}" class="btn" style="background-color: #0052cc; color: #ffffff !important; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; display: inline-block;">
+          📋 View on Kanban Board
+        </a>
+      </div>
     `;
 
     return await this.sendMail({
@@ -202,12 +218,20 @@ class MailService {
     const emails = recipients.map(r => typeof r === 'string' ? r : r.email).filter(Boolean);
     if (emails.length === 0) return;
 
+    const clientUrl = this.getClientUrl();
+    const boardUrl = `${clientUrl}/board`;
+
     const body = `
       <div class="badge">Status Update</div>
       <div class="ticket-title">[${ticket.ticketKey}] ${ticket.title}</div>
       <p>The status of ticket <strong>${ticket.ticketKey}</strong> has been updated by <strong>${updatedBy ? updatedBy.name : 'User'}</strong>.</p>
       <div style="background: #f4f5f7; padding: 12px 16px; border-radius: 6px; font-weight: bold;">
         Status changed: <span style="color: #de350b;">${oldStatus}</span> ➔ <span style="color: #00875a;">${newStatus}</span>
+      </div>
+      <div style="margin-top: 18px;">
+        <a href="${boardUrl}" class="btn" style="background-color: #0052cc; color: #ffffff !important; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; display: inline-block;">
+          📋 View Board
+        </a>
       </div>
     `;
 
@@ -224,12 +248,20 @@ class MailService {
     const emails = recipients.map(r => typeof r === 'string' ? r : r.email).filter(Boolean);
     if (emails.length === 0) return;
 
+    const clientUrl = this.getClientUrl();
+    const boardUrl = `${clientUrl}/board`;
+
     const body = `
       <div class="badge">New Comment</div>
       <div class="ticket-title">[${ticket.ticketKey}] ${ticket.title}</div>
       <p><strong>${author ? author.name : 'Someone'}</strong> commented on <strong>${ticket.ticketKey}</strong>:</p>
       <div style="border-left: 4px solid #0052cc; padding: 10px 16px; background: #f4f5f7; margin: 12px 0;">
         ${comment.content}
+      </div>
+      <div style="margin-top: 18px;">
+        <a href="${boardUrl}" class="btn" style="background-color: #0052cc; color: #ffffff !important; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; display: inline-block;">
+          💬 View Comment on Board
+        </a>
       </div>
     `;
 
@@ -243,6 +275,9 @@ class MailService {
   async sendUserMentionedEmail({ ticket, comment, author, mentionedUser }) {
     if (!mentionedUser || !mentionedUser.email) return;
 
+    const clientUrl = this.getClientUrl();
+    const boardUrl = `${clientUrl}/board`;
+
     const body = `
       <div class="badge" style="background: #fffae6; color: #ff8b00;">You Were Mentioned</div>
       <div class="ticket-title">[${ticket.ticketKey}] ${ticket.title}</div>
@@ -250,6 +285,11 @@ class MailService {
       <p><strong>${author ? author.name : 'A team member'}</strong> tagged you in a comment on ticket <strong>${ticket.ticketKey}</strong>:</p>
       <div style="border-left: 4px solid #ff8b00; padding: 10px 16px; background: #fffbe6; margin: 12px 0;">
         ${comment.content}
+      </div>
+      <div style="margin-top: 18px;">
+        <a href="${boardUrl}" class="btn" style="background-color: #0052cc; color: #ffffff !important; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; display: inline-block;">
+          🔔 View Mentioned Ticket
+        </a>
       </div>
     `;
 
@@ -263,17 +303,28 @@ class MailService {
   async sendWelcomeUserEmail({ name, email, password, role, createdBy }) {
     if (!email) return;
 
+    const clientUrl = this.getClientUrl();
+    const loginUrl = `${clientUrl}/login`;
+
     const body = `
       <div class="badge" style="background: #deebff; color: #0747a6;">Welcome to Jira Engine</div>
       <div class="ticket-title">Your Workspace Account Credentials</div>
       <p>Hello <strong>${name}</strong>,</p>
       <p>An account has been provisioned for you in Jira Engine by <strong>${createdBy ? createdBy.name : 'System Admin'}</strong>.</p>
-      <div style="background: #f4f5f7; padding: 14px 18px; border-radius: 6px; border: 1px solid #dfe1e6; margin: 12px 0;">
-        <p style="margin: 4px 0;"><strong>Assigned Role:</strong> ${role}</p>
-        <p style="margin: 4px 0;"><strong>Email Address:</strong> ${email}</p>
-        <p style="margin: 4px 0;"><strong>Initial Password:</strong> <code style="background: #ebecf0; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
+      <div style="background: #f4f5f7; padding: 14px 18px; border-radius: 6px; border: 1px solid #dfe1e6; margin: 16px 0;">
+        <p style="margin: 6px 0;"><strong>Assigned Role:</strong> <span style="background: #ebecf0; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${role}</span></p>
+        <p style="margin: 6px 0;"><strong>Email Address:</strong> ${email}</p>
+        <p style="margin: 6px 0;"><strong>Initial Password:</strong> <code style="background: #ebecf0; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; color: #0052cc;">${password}</code></p>
       </div>
-      <p>You can now log in using these credentials.</p>
+      <p>You can now log in to the workspace directly by clicking the button below:</p>
+      <div style="margin: 22px 0 16px; text-align: center;">
+        <a href="${loginUrl}" class="btn" style="background-color: #0052cc; color: #ffffff !important; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">
+          🚀 Log In to Jira Engine
+        </a>
+      </div>
+      <p style="font-size: 12px; color: #6b778c; margin-top: 14px; word-break: break-all;">
+        Website URL: <a href="${loginUrl}" style="color: #0052cc; text-decoration: underline;">${loginUrl}</a>
+      </p>
     `;
 
     return await this.sendMail({
@@ -286,16 +337,27 @@ class MailService {
   async sendForgotPasswordEmail({ name, email, newPassword }) {
     if (!email) return;
 
+    const clientUrl = this.getClientUrl();
+    const loginUrl = `${clientUrl}/login`;
+
     const body = `
       <div class="badge" style="background: #ffebe6; color: #de350b;">Security Alert</div>
       <div class="ticket-title">Password Reset - Temporary Credentials</div>
       <p>Hello <strong>${name}</strong>,</p>
       <p>A password reset was requested for your Jira Engine account.</p>
-      <div style="background: #f4f5f7; padding: 14px 18px; border-radius: 6px; border: 1px solid #dfe1e6; margin: 12px 0;">
-        <p style="margin: 4px 0;"><strong>Account Email:</strong> ${email}</p>
-        <p style="margin: 4px 0;"><strong>New Temporary Password:</strong> <code style="background: #ebecf0; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 15px; color: #0052cc;">${newPassword}</code></p>
+      <div style="background: #f4f5f7; padding: 14px 18px; border-radius: 6px; border: 1px solid #dfe1e6; margin: 16px 0;">
+        <p style="margin: 6px 0;"><strong>Account Email:</strong> ${email}</p>
+        <p style="margin: 6px 0;"><strong>New Temporary Password:</strong> <code style="background: #ebecf0; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; color: #0052cc;">${newPassword}</code></p>
       </div>
-      <p>Please log in using this temporary password.</p>
+      <p>Please log in using this temporary password and update your credentials:</p>
+      <div style="margin: 22px 0 16px; text-align: center;">
+        <a href="${loginUrl}" class="btn" style="background-color: #0052cc; color: #ffffff !important; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">
+          🔑 Log In to Reset Password
+        </a>
+      </div>
+      <p style="font-size: 12px; color: #6b778c; margin-top: 14px; word-break: break-all;">
+        Website URL: <a href="${loginUrl}" style="color: #0052cc; text-decoration: underline;">${loginUrl}</a>
+      </p>
     `;
 
     return await this.sendMail({

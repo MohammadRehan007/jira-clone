@@ -18,6 +18,14 @@ services:
         sync: false
       - key: BREVO_SENDER_NAME
         value: "Jira Engine"
+      - key: CLIENT_URL
+        value: "https://jira-clone-phi-blond.vercel.app"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
