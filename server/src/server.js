@@ -27,14 +27,22 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Register API Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/projects', require('./routes/projectRoutes'));
-app.use('/api/sprints', require('./routes/sprintRoutes'));
-app.use('/api/tickets', require('./routes/ticketRoutes'));
-app.use('/api/comments', require('./routes/commentRoutes'));
-app.use('/api/upload', require('./routes/uploadRoutes'));
+// Register API Routes (Both /api and direct root prefix supported)
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const sprintRoutes = require('./routes/sprintRoutes');
+const ticketRoutes = require('./routes/ticketRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
+
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/users', '/users'], userRoutes);
+app.use(['/api/projects', '/projects'], projectRoutes);
+app.use(['/api/sprints', '/sprints'], sprintRoutes);
+app.use(['/api/tickets', '/tickets'], ticketRoutes);
+app.use(['/api/comments', '/comments'], commentRoutes);
+app.use(['/api/upload', '/upload'], uploadRoutes);
 
 // Centralized Error Handler
 app.use(errorHandler);
