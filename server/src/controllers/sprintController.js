@@ -9,7 +9,7 @@ const getSprintsByProject = async (req, res, next) => {
       throw new Error('Project ID is required in query params');
     }
 
-    const sprints = await Sprint.find({ project }).sort({ createdAt: -1 });
+    const sprints = await Sprint.find({ project }).sort({ createdAt: -1 }).lean();
     res.json(sprints);
   } catch (error) {
     next(error);

@@ -9,7 +9,7 @@ import { useProject } from '../../context/ProjectContext';
 import { useToast } from '../../context/ToastContext';
 
 const CreateTicketModal = ({ isOpen, onClose }) => {
-  const { activeProject, sprints, users, fetchTickets } = useProject();
+  const { activeProject, sprints, users, refreshProjectData } = useProject();
   const { addToast } = useToast();
 
   const [title, setTitle] = useState('');
@@ -52,7 +52,7 @@ const CreateTicketModal = ({ isOpen, onClose }) => {
       });
 
       addToast(`Ticket '${res.data.ticketKey}' created! Email notification dispatched.`, 'success');
-      await fetchTickets(activeProject._id, sprint || null);
+      await refreshProjectData();
       
       // Reset
       setTitle('');

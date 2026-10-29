@@ -4,7 +4,9 @@ const getProjects = async (req, res, next) => {
   try {
     const projects = await Project.find({})
       .populate('lead', 'name email avatar role')
-      .populate('members', 'name email avatar role department');
+      .populate('members', 'name email avatar role department')
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(projects);
   } catch (error) {
     next(error);

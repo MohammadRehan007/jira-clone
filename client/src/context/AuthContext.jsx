@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 
@@ -23,6 +24,9 @@ export const AuthProvider = ({ children }) => {
     const res = await axiosClient.post('/auth/login', { email, password });
     setUser(res.data);
     localStorage.setItem('jira_user', JSON.stringify(res.data));
+    if (res.data?._id) {
+      sessionStorage.removeItem(`jira_guidelines_seen_${res.data._id}`);
+    }
     return res.data;
   };
 
@@ -36,6 +40,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('jira_user');
+    localStorage.removeItem('jira_projects');
+    localStorage.removeItem('jira_active_project');
   };
 
   const updateUser = (updatedData) => {

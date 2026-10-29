@@ -7,7 +7,7 @@ import { BarChart3, CheckCircle2, Clock, Bug, CheckSquare, AlertTriangle, Users,
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 const AnalyticsDashboard = () => {
-  const { activeProject, activeSprint, tickets, users } = useProject();
+  const { activeProject, activeSprint, tickets, users, dataLoading } = useProject();
   const { user: currentUser } = useAuth();
   
   const [selectedUserForDelete, setSelectedUserForDelete] = useState(null);

@@ -1,24 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useProject } from '../../context/ProjectContext';
 import Button from '../common/Button';
 import Avatar from '../common/Avatar';
 import { RoleBadge } from '../common/Badge';
-import { Plus, Search, LogOut, ChevronDown, Layers, CheckSquare } from 'lucide-react';
+import { Plus, Search, LogOut, ChevronDown, Layers, CheckSquare, Sparkles, BookOpen } from 'lucide-react';
 import CreateTicketModal from '../ticket/CreateTicketModal';
 import CreateProjectModal from './CreateProjectModal';
 import AddUserModal from './AddUserModal';
 import ProfileModal from './ProfileModal';
+import WorkflowGuidelinesModal from './WorkflowGuidelinesModal';
 import { UserPlus, Camera } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
-  const { projects, activeProject, setActiveProject } = useProject();
+  const { projects, activeProject, setActiveProject, projectsLoading, dataLoading } = useProject();
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isGuidelinesModalOpen, setIsGuidelinesModalOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Auto-display guidelines popup on login when user is Developer or Tester
+  useEffect(() => {
+    if (user && (user.role === 'Developer' || user.role === 'Tester')) {
+      const seen = sessionStorage.getItem(`jira_guidelines_seen_${user._id}`);
+      if (!seen) {
+        setIsGuidelinesModalOpen(true);
+      }
+    }
+  }, [user]);
+
+  const handleCloseGuidelines = () => {
+    if (user?._id) {
+      sessionStorage.setItem(`jira_guidelines_seen_${user._id}`, 'true');
+    }
+    setIsGuidelinesModalOpen(false);
+  };
 
   return (
     <>
@@ -43,12 +62,21 @@ const Navbar = () => {
               }}
               className="bg-transparent text-sm font-semibold text-slate-200 focus:outline-none cursor-pointer pr-4"
             >
-              {projects.map((p) => (
-                <option key={p._id} value={p._id} className="bg-slate-900 text-slate-200">
-                  {p.name} ({p.key})
+              {projects.length === 0 ? (
+                <option value="" disabled className="bg-slate-900 text-slate-400">
+                  {projectsLoading ? 'Loading projects...' : 'No projects found'}
                 </option>
-              ))}
+              ) : (
+                projects.map((p) => (
+                  <option key={p._id} value={p._id} className="bg-slate-900 text-slate-200">
+                    {p.name} ({p.key})
+                  </option>
+                ))
+              )}
             </select>
+            {dataLoading && (
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping mr-1" title="Syncing project data..." />
+            )}
             {(user?.role === 'Admin' || user?.role === 'ProjectLead') && (
               <button
                 onClick={() => setIsProjectModalOpen(true)}
@@ -61,8 +89,17 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Center: Search & Create Ticket */}
+        {/* Center: Search & Create Ticket & Guidelines */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsGuidelinesModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 hover:from-indigo-500/35 hover:to-purple-500/35 border border-indigo-400/30 text-indigo-200 hover:text-white text-xs font-bold transition-all shadow-xs"
+            title="View Developer & Tester Workflow Guidelines"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span className="hidden sm:inline">Workflow Guidelines</span>
+          </button>
+
           <Button
             variant="primary"
             size="sm"
@@ -139,6 +176,17 @@ const Navbar = () => {
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
+                    setIsGuidelinesModalOpen(true);
+                  }}
+                  className="w-full text-left px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 transition-colors border-b border-slate-100"
+                >
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <span>Workflow Guidelines</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
                     logout();
                   }}
                   className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
@@ -160,6 +208,12 @@ const Navbar = () => {
       <AddUserModal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} />
       {/* Profile & Avatar Modal */}
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      {/* Workflow Guidelines Modal (auto-shows on Developer/Tester login) */}
+      <WorkflowGuidelinesModal
+        isOpen={isGuidelinesModalOpen}
+        onClose={handleCloseGuidelines}
+        user={user}
+      />
     </>
   );
 };

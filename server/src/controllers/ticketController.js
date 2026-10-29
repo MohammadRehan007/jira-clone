@@ -38,7 +38,8 @@ const getTickets = async (req, res, next) => {
       .populate('reporter', 'name email avatar role department')
       .populate('sprint', 'name status startDate endDate')
       .populate('project', 'name key')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json(tickets);
   } catch (error) {

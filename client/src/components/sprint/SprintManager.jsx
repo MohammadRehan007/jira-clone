@@ -7,7 +7,7 @@ import CreateSprintModal from './CreateSprintModal';
 import { CalendarRange, Play, CheckCircle, Plus, Clock, Target } from 'lucide-react';
 
 const SprintManager = () => {
-  const { activeProject, sprints, fetchSprints } = useProject();
+  const { activeProject, sprints, refreshProjectData, dataLoading } = useProject();
   const { addToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
@@ -17,7 +17,7 @@ const SprintManager = () => {
       setUpdatingId(sprintId);
       await axiosClient.put(`/sprints/${sprintId}/status`, { status: 'Active' });
       addToast('Sprint started! Active board updated.', 'success');
-      await fetchSprints(activeProject._id);
+      await refreshProjectData();
     } catch (err) {
       addToast('Failed to start sprint', 'error');
     } finally {
@@ -33,7 +33,7 @@ const SprintManager = () => {
         rolloverOption: 'backlog'
       });
       addToast('Sprint marked as Completed. Unfinished tickets rolled over to Backlog.', 'info');
-      await fetchSprints(activeProject._id);
+      await refreshProjectData();
     } catch (err) {
       addToast('Failed to complete sprint', 'error');
     } finally {

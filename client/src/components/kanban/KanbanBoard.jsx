@@ -19,7 +19,15 @@ const COLUMNS = [
 ];
 
 const KanbanBoard = () => {
-  const { activeProject, activeSprint, tickets, setTickets, fetchTickets, users } = useProject();
+  const { 
+    activeProject, 
+    activeSprint, 
+    tickets, 
+    setTickets, 
+    refreshProjectData, 
+    dataLoading, 
+    users 
+  } = useProject();
   const { addToast } = useToast();
   
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -28,11 +36,10 @@ const KanbanBoard = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
 
-  useEffect(() => {
-    if (activeProject) {
-      fetchTickets(activeProject._id, activeSprint?._id);
-    }
-  }, [activeProject, activeSprint, fetchTickets]);
+  // Scoped to active sprint if one exists; otherwise shows all project tickets
+  const sprintTickets = activeSprint
+    ? tickets.filter((t) => (t.sprint?._id || t.sprint) === activeSprint._id)
+    : tickets;
 
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
@@ -56,12 +63,12 @@ const KanbanBoard = () => {
       addToast(`Moved ticket status to '${newStatus}'. Email notification sent!`, 'success');
     } catch (err) {
       addToast('Failed to update ticket status', 'error');
-      if (activeProject) fetchTickets(activeProject._id, activeSprint?._id);
+      refreshProjectData();
     }
   };
 
   // Filter tickets
-  const filteredTickets = tickets.filter((t) => {
+  const filteredTickets = sprintTickets.filter((t) => {
     if (search) {
       const q = search.toLowerCase();
       const matchTitle = t.title?.toLowerCase().includes(q);
@@ -70,7 +77,7 @@ const KanbanBoard = () => {
       const matchName = t.assignee?.name?.toLowerCase().includes(q);
       if (!matchTitle && !matchKey && !matchEmail && !matchName) return false;
     }
-    if (assigneeFilter && t.assignee?._id !== assigneeFilter) return false;
+    if (assigneeFilter && (t.assignee?._id || t.assignee) !== assigneeFilter) return false;
     if (typeFilter && t.type !== typeFilter) return false;
     if (priorityFilter && t.priority !== priorityFilter) return false;
     return true;
@@ -146,13 +153,13 @@ const KanbanBoard = () => {
           </div>
 
           <button
-            onClick={() => {
-              if (activeProject) fetchTickets(activeProject._id, activeSprint?._id);
-            }}
-            className="p-2 rounded border border-slate-300 text-slate-600 hover:bg-slate-100 transition-colors"
+            onClick={() => refreshProjectData()}
+            className={`p-2 rounded border border-slate-300 text-slate-600 hover:bg-slate-100 transition-colors ${
+              dataLoading ? 'opacity-70' : ''
+            }`}
             title="Refresh Board"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin text-blue-600' : ''}`} />
           </button>
         </div>
       </div>
@@ -169,6 +176,7 @@ const KanbanBoard = () => {
                 title={col.title}
                 tickets={colTickets}
                 colorHeader={col.color}
+                isLoading={dataLoading && sprintTickets.length === 0}
                 onCardClick={(t) => setSelectedTicket(t)}
               />
             );
@@ -181,9 +189,7 @@ const KanbanBoard = () => {
         <TicketDetailModal
           ticketId={selectedTicket._id}
           onClose={() => setSelectedTicket(null)}
-          onUpdate={() => {
-            if (activeProject) fetchTickets(activeProject._id, activeSprint?._id);
-          }}
+          onUpdate={() => refreshProjectData()}
         />
       )}
     </div>

@@ -12,31 +12,12 @@ import CreateTicketModal from '../ticket/CreateTicketModal';
 import { ListTodo, Plus, Search, ArrowRight, Layers } from 'lucide-react';
 
 const BacklogView = () => {
-  const { activeProject, sprints, fetchTickets, fetchSprints } = useProject();
+  const { activeProject, sprints, tickets, refreshProjectData, dataLoading } = useProject();
   const { addToast } = useToast();
 
-  const [backlogTickets, setBacklogTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  const loadBacklog = async () => {
-    if (!activeProject) return;
-    try {
-      setLoading(true);
-      const res = await axiosClient.get(`/tickets?project=${activeProject._id}`);
-      setBacklogTickets(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadBacklog();
-  }, [activeProject]);
 
   const handleMoveToSprint = async (ticketId, sprintId) => {
     try {
@@ -44,14 +25,14 @@ const BacklogView = () => {
         sprint: sprintId || null
       });
       addToast(`Ticket destination updated!`, 'success');
-      loadBacklog();
+      refreshProjectData();
     } catch (err) {
       addToast('Failed to update ticket sprint', 'error');
     }
   };
 
-  const filteredTickets = backlogTickets.filter((t) => {
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.ticketKey.toLowerCase().includes(search.toLowerCase())) {
+  const filteredTickets = tickets.filter((t) => {
+    if (search && !t.title?.toLowerCase().includes(search.toLowerCase()) && !t.ticketKey?.toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
     return true;
@@ -222,7 +203,7 @@ const BacklogView = () => {
         <TicketDetailModal
           ticketId={selectedTicketId}
           onClose={() => setSelectedTicketId(null)}
-          onUpdate={loadBacklog}
+          onUpdate={refreshProjectData}
         />
       )}
 

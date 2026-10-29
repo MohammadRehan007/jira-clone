@@ -19,9 +19,9 @@ const ticketSchema = new mongoose.Schema({
     enum: ['Lowest', 'Low', 'Medium', 'High', 'Highest'], 
     default: 'Medium' 
   },
-  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
-  sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint', default: null }, // Null means Backlog
-  assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
+  sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint', default: null, index: true },
+  assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
   reporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   storyPoints: { type: Number, default: 1 },
   dueDate: { type: Date, default: null },
@@ -35,5 +35,9 @@ const ticketSchema = new mongoose.Schema({
     uploadedAt: { type: Date, default: Date.now }
   }]
 }, { timestamps: true });
+
+ticketSchema.index({ project: 1, sprint: 1 });
+ticketSchema.index({ project: 1, status: 1 });
+ticketSchema.index({ project: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Ticket', ticketSchema);

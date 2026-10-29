@@ -8,7 +8,7 @@ import { useProject } from '../../context/ProjectContext';
 import { useToast } from '../../context/ToastContext';
 
 const CreateSprintModal = ({ isOpen, onClose }) => {
-  const { activeProject, fetchSprints } = useProject();
+  const { activeProject, refreshProjectData } = useProject();
   const { addToast } = useToast();
 
   const [name, setName] = useState('');
@@ -33,7 +33,7 @@ const CreateSprintModal = ({ isOpen, onClose }) => {
       });
 
       addToast(`Sprint '${name}' created!`, 'success');
-      await fetchSprints(activeProject._id);
+      await refreshProjectData();
       setName('');
       setGoal('');
       onClose();
