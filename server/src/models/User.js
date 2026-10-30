@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   avatarPublicId: { type: String, default: '' },
   department: { type: String, default: 'Engineering' },
+  resetPasswordToken: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null },
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {

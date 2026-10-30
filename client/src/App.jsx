@@ -7,6 +7,7 @@ import { ProjectProvider } from './context/ProjectContext';
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import BoardPage from './pages/BoardPage';
 import BacklogPage from './pages/BacklogPage';
 import SprintsPage from './pages/SprintsPage';
@@ -40,6 +41,8 @@ const App = () => {
               {/* Public Auth Routes */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<Navigate to="/login" replace />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Protected App Routes */}
               <Route

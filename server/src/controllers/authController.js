@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const mailService = require('../services/mailService');
 const { generateRandomPassword } = require('../utils/generatePassword');
 
@@ -44,10 +45,10 @@ const loginUser = async (req, res, next) => {
 
 const forgotPassword = async (req, res, next) => {
   try {
-    const { email, newPassword } = req.body;
+    const { email } = req.body;
     if (!email) {
       res.status(400);
-      throw new Error('Please provide your registered email address');
+      throw new Error('Please enter your account email address');
     }
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
@@ -56,27 +57,72 @@ const forgotPassword = async (req, res, next) => {
       throw new Error('No account found with this email address');
     }
 
-    // Use user-provided new password, or generate a random temporary password
-    const resetPass = (newPassword && newPassword.trim()) 
-      ? newPassword.trim() 
-      : generateRandomPassword(10);
+    // Generate secure random reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
 
-    user.password = resetPass;
-    await user.save();
+    // Hash token for database storage and set 60-minute expiration
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    await user.save({ validateBeforeSave: false });
 
-    // Send email with new credentials asynchronously without blocking or failing the request
-    mailService.sendForgotPasswordEmail({
+    // Build reset link pointing to the React client page
+    const clientUrl = mailService.getClientUrl();
+    const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
+
+    // Send password reset email with dedicated security template
+    await mailService.sendPasswordResetEmail({
       name: user.name,
       email: user.email,
-      newPassword: resetPass
-    }).catch(err => console.warn('[Forgot Password Email Warning]', err.message));
+      resetUrl,
+      expireMinutes: 60
+    });
 
     res.json({
       success: true,
-      message: (newPassword && newPassword.trim())
-        ? `Password updated successfully for ${user.email}! You can now sign in with your new password.`
-        : `Password reset successfully! A temporary password has been sent to ${user.email}.`,
-      tempPassword: (newPassword && newPassword.trim()) ? null : resetPass
+      message: `Password reset link has been emailed to ${user.email}. Please check your inbox and follow the link to set your new password.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const token = req.params.token || req.body.token;
+    const { password } = req.body;
+
+    if (!token) {
+      res.status(400);
+      throw new Error('Password reset token is missing');
+    }
+
+    if (!password || password.trim().length < 6) {
+      res.status(400);
+      throw new Error('Password must be at least 6 characters long');
+    }
+
+    // Hash token to compare with database value
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      res.status(400);
+      throw new Error('Password reset link is invalid or has expired. Please request a new one.');
+    }
+
+    // Set user's manual password (userSchema.pre('save') encrypts it with bcrypt salt!)
+    user.password = password.trim();
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully! You can now log in with your new password.'
     });
   } catch (error) {
     next(error);
@@ -91,4 +137,4 @@ const getMe = async (req, res, next) => {
   }
 };
 
-module.exports = { registerUser, loginUser, forgotPassword, getMe };
+module.exports = { registerUser, loginUser, forgotPassword, resetPassword, getMe };

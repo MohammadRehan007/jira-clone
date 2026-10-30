@@ -334,37 +334,110 @@ class MailService {
     });
   }
 
-  async sendForgotPasswordEmail({ name, email, newPassword }) {
+  async sendPasswordResetEmail({ name, email, resetUrl, expireMinutes = 60 }) {
     if (!email) return;
 
-    const clientUrl = this.getClientUrl();
-    const loginUrl = `${clientUrl}/login`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0f172a; padding: 40px 15px;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                <!-- Header -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #6366f1 100%); padding: 32px 30px; text-align: center;">
+                    <div style="display: inline-block; width: 56px; height: 56px; line-height: 56px; background-color: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 14px; margin-bottom: 12px; font-size: 26px;">
+                      🔐
+                    </div>
+                    <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">
+                      Password Reset Request
+                    </h1>
+                    <p style="margin: 6px 0 0; color: #bfdbfe; font-size: 13px; font-weight: 500;">
+                      Jira Engine Security & Authentication Service
+                    </p>
+                  </td>
+                </tr>
 
-    const body = `
-      <div class="badge" style="background: #ffebe6; color: #de350b;">Security Alert</div>
-      <div class="ticket-title">Password Reset - Temporary Credentials</div>
-      <p>Hello <strong>${name}</strong>,</p>
-      <p>A password reset was requested for your Jira Engine account.</p>
-      <div style="background: #f4f5f7; padding: 14px 18px; border-radius: 6px; border: 1px solid #dfe1e6; margin: 16px 0;">
-        <p style="margin: 6px 0;"><strong>Account Email:</strong> ${email}</p>
-        <p style="margin: 6px 0;"><strong>New Temporary Password:</strong> <code style="background: #ebecf0; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; color: #0052cc;">${newPassword}</code></p>
-      </div>
-      <p>Please log in using this temporary password and update your credentials:</p>
-      <div style="margin: 22px 0 16px; text-align: center;">
-        <a href="${loginUrl}" class="btn" style="background-color: #0052cc; color: #ffffff !important; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">
-          🔑 Log In to Reset Password
-        </a>
-      </div>
-      <p style="font-size: 12px; color: #6b778c; margin-top: 14px; word-break: break-all;">
-        Website URL: <a href="${loginUrl}" style="color: #0052cc; text-decoration: underline;">${loginUrl}</a>
-      </p>
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 36px 32px; background-color: #ffffff;">
+                    <p style="margin: 0 0 16px; font-size: 15px; color: #1e293b; line-height: 1.6;">
+                      Hello <strong>${name || 'Team Member'}</strong>,
+                    </p>
+                    <p style="margin: 0 0 22px; font-size: 14px; color: #475569; line-height: 1.6;">
+                      We received a request to reset the password for your account associated with <strong style="color: #1e3a8a;">${email}</strong>.
+                    </p>
+                    <p style="margin: 0 0 28px; font-size: 14px; color: #475569; line-height: 1.6;">
+                      Click the button below to open the secure page and enter your new password:
+                    </p>
+
+                    <!-- Reset Button -->
+                    <div style="text-align: center; margin: 30px 0 34px;">
+                      <a href="${resetUrl}" target="_blank" style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color: #ffffff !important; padding: 14px 34px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35); letter-spacing: 0.3px;">
+                        🔑 Set New Password
+                      </a>
+                    </div>
+
+                    <!-- Security Alert Callout -->
+                    <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; border-radius: 6px; padding: 14px 18px; margin: 24px 0 20px;">
+                      <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; color: #1e3a8a;">
+                        ⏱️ Security Notice
+                      </p>
+                      <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                        This password reset link is valid for <strong>${expireMinutes} minutes</strong> only. You will be able to manually specify your new password on the page.
+                      </p>
+                    </div>
+
+                    <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px; padding: 12px 18px; margin: 0 0 24px;">
+                      <p style="margin: 0; font-size: 12px; color: #991b1b; line-height: 1.5;">
+                        If you did not request a password reset, please ignore this email. Your current password remains completely unchanged and secure.
+                      </p>
+                    </div>
+
+                    <!-- Direct Link Fallback -->
+                    <p style="margin: 20px 0 6px; font-size: 12px; color: #94a3b8;">
+                      Having trouble with the button? Copy and paste this URL into your browser:
+                    </p>
+                    <p style="margin: 0; font-size: 11px; word-break: break-all; color: #2563eb; background-color: #f1f5f9; padding: 8px 12px; border-radius: 6px;">
+                      <a href="${resetUrl}" style="color: #2563eb; text-decoration: underline;">${resetUrl}</a>
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 30px; text-align: center;">
+                    <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.5;">
+                      Sent automatically by Jira Engine Security. Please do not reply to this email.<br/>
+                      © 2026 Jira Engine. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
     `;
 
     return await this.sendMail({
       to: email,
-      subject: `[Jira Security] Password Reset Notification`,
-      html: this._baseTemplate(`Password Reset Notification`, body)
+      subject: `[Jira Engine] Password Reset Request`,
+      html
     });
+  }
+
+  // Backward compatibility alias
+  async sendForgotPasswordEmail(args) {
+    return await this.sendPasswordResetEmail(args);
   }
 }
 
