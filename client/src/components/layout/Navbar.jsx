@@ -10,7 +10,8 @@ import CreateProjectModal from './CreateProjectModal';
 import AddUserModal from './AddUserModal';
 import ProfileModal from './ProfileModal';
 import WorkflowGuidelinesModal from './WorkflowGuidelinesModal';
-import { UserPlus, Camera } from 'lucide-react';
+import ForgotPasswordModal from './ForgotPasswordModal';
+import { UserPlus, Camera, KeyRound } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -20,6 +21,7 @@ const Navbar = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isGuidelinesModalOpen, setIsGuidelinesModalOpen] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Auto-display guidelines popup on login when user is Developer or Tester
@@ -160,6 +162,17 @@ const Navbar = () => {
                   <span>Profile & Photo</span>
                 </button>
 
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    setIsForgotModalOpen(true);
+                  }}
+                  className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors border-b border-slate-100"
+                >
+                  <KeyRound className="w-4 h-4 text-amber-500" />
+                  <span>Forgot / Reset Password</span>
+                </button>
+
                 {(user?.role === 'Admin' || user?.role === 'ProjectLead') && (
                   <button
                     onClick={() => {
@@ -208,6 +221,8 @@ const Navbar = () => {
       <AddUserModal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} />
       {/* Profile & Avatar Modal */}
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      {/* Forgot / Reset Password Modal */}
+      <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} />
       {/* Workflow Guidelines Modal (auto-shows on Developer/Tester login) */}
       <WorkflowGuidelinesModal
         isOpen={isGuidelinesModalOpen}

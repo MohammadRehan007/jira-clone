@@ -3,10 +3,11 @@ import Modal from '../common/Modal';
 import Button from '../common/Button';
 import Avatar from '../common/Avatar';
 import { RoleBadge } from '../common/Badge';
-import { Camera, Loader2, Check, UploadCloud } from 'lucide-react';
+import { Camera, Loader2, Check, UploadCloud, KeyRound } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
 const ProfileModal = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuth();
@@ -16,6 +17,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
@@ -156,7 +158,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Action Prompt */}
-        <div className="w-full border-t border-slate-100 pt-4 flex flex-col items-center text-center">
+        <div className="w-full border-t border-slate-100 pt-4 flex flex-col items-center gap-3 text-center">
           {selectedFile ? (
             <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg font-medium">
               <span>Ready to upload: <strong>{selectedFile.name}</strong></span>
@@ -178,8 +180,25 @@ const ProfileModal = ({ isOpen, onClose }) => {
               <span>Upload photo to Cloudinary</span>
             </button>
           )}
+
+          <div className="w-full pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-[11px] text-slate-500">Need to update your password?</span>
+            <button
+              type="button"
+              onClick={() => setIsForgotModalOpen(true)}
+              className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 p-1 rounded hover:bg-amber-50 transition-colors"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Reset Password</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+      />
     </Modal>
   );
 };

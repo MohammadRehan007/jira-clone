@@ -44,32 +44,39 @@ const loginUser = async (req, res, next) => {
 
 const forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { email, newPassword } = req.body;
     if (!email) {
       res.status(400);
       throw new Error('Please provide your registered email address');
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       res.status(404);
       throw new Error('No account found with this email address');
     }
 
-    // Auto-generate random new password
-    const newPassword = generateRandomPassword(10);
-    user.password = newPassword;
+    // Use user-provided new password, or generate a random temporary password
+    const resetPass = (newPassword && newPassword.trim()) 
+      ? newPassword.trim() 
+      : generateRandomPassword(10);
+
+    user.password = resetPass;
     await user.save();
 
-    // Send email with new password
-    await mailService.sendForgotPasswordEmail({
+    // Send email with new credentials asynchronously without blocking or failing the request
+    mailService.sendForgotPasswordEmail({
       name: user.name,
       email: user.email,
-      newPassword
-    });
+      newPassword: resetPass
+    }).catch(err => console.warn('[Forgot Password Email Warning]', err.message));
 
     res.json({
-      message: `Password reset successfully! A temporary password has been sent to ${email}.`
+      success: true,
+      message: (newPassword && newPassword.trim())
+        ? `Password updated successfully for ${user.email}! You can now sign in with your new password.`
+        : `Password reset successfully! A temporary password has been sent to ${user.email}.`,
+      tempPassword: (newPassword && newPassword.trim()) ? null : resetPass
     });
   } catch (error) {
     next(error);

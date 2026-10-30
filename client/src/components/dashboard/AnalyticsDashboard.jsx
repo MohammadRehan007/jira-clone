@@ -3,8 +3,9 @@ import { useProject } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../common/Avatar';
 import { RoleBadge } from '../common/Badge';
-import { BarChart3, CheckCircle2, Clock, Bug, CheckSquare, AlertTriangle, Users, Trash2 } from 'lucide-react';
+import { BarChart3, CheckCircle2, Clock, Bug, CheckSquare, AlertTriangle, Users, Trash2, Pencil } from 'lucide-react';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import EditUserModal from '../layout/EditUserModal';
 
 const AnalyticsDashboard = () => {
   const { activeProject, activeSprint, tickets, users, dataLoading } = useProject();
@@ -12,10 +13,17 @@ const AnalyticsDashboard = () => {
   
   const [selectedUserForDelete, setSelectedUserForDelete] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const openDeleteModal = (targetUser) => {
     setSelectedUserForDelete(targetUser);
     setIsDeleteModalOpen(true);
+  };
+
+  const openEditModal = (targetUser) => {
+    setSelectedUserForEdit(targetUser);
+    setIsEditModalOpen(true);
   };
 
   const totalTickets = tickets.length;
@@ -155,18 +163,29 @@ const AnalyticsDashboard = () => {
                     </td>
                     {currentUser?.role === 'Admin' && (
                       <td className="p-3.5 text-right">
-                        {u._id !== currentUser._id ? (
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => openDeleteModal(u)}
-                            className="p-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold transition-colors border border-rose-200 flex items-center gap-1 ml-auto cursor-pointer"
-                            title="Delete User"
+                            onClick={() => openEditModal(u)}
+                            className="px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold transition-colors border border-blue-200 flex items-center gap-1 cursor-pointer text-xs"
+                            title="Edit User"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete</span>
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span>Edit</span>
                           </button>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 font-medium italic">Current User</span>
-                        )}
+
+                          {u._id !== currentUser._id ? (
+                            <button
+                              onClick={() => openDeleteModal(u)}
+                              className="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold transition-colors border border-rose-200 flex items-center gap-1 cursor-pointer text-xs"
+                              title="Delete User"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium italic px-1">(You)</span>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -176,6 +195,16 @@ const AnalyticsDashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedUserForEdit(null);
+        }}
+        userToEdit={selectedUserForEdit}
+      />
 
       {/* Custom Reusable Delete User Modal */}
       <ConfirmDeleteModal

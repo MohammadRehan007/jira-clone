@@ -70,6 +70,51 @@ const createUser = async (req, res, next) => {
   }
 };
 
+const updateUser = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    const { name, email, role, department, password } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    // Check if new email is taken by another account
+    if (email && email.toLowerCase().trim() !== user.email.toLowerCase()) {
+      const emailExists = await User.findOne({ email: email.toLowerCase().trim() });
+      if (emailExists && emailExists._id.toString() !== userId) {
+        res.status(400);
+        throw new Error(`Email '${email}' is already registered to another user`);
+      }
+      user.email = email.toLowerCase().trim();
+    }
+
+    if (name && name.trim()) user.name = name.trim();
+    if (role) user.role = role;
+    if (department) user.department = department.trim();
+
+    // If Admin provides a new password, update it
+    if (password && password.trim()) {
+      user.password = password.trim();
+    }
+
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      avatar: user.avatar
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deleteUser = async (req, res, next) => {
   try {
     const userId = req.params.id;
@@ -97,4 +142,4 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
-module.exports = { getUsers, getUserById, createUser, deleteUser };
+module.exports = { getUsers, getUserById, createUser, updateUser, deleteUser };
