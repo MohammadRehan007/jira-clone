@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useProject } from '../../context/ProjectContext';
 import { 
   Kanban, 
@@ -12,7 +13,10 @@ import {
 } from 'lucide-react';
 
 const Sidebar = () => {
+  const { user } = useAuth();
   const { activeProject, activeSprint } = useProject();
+
+  const canManageSprints = user?.role === 'Admin' || user?.role === 'ProjectLead';
 
   const navItems = [
     {
@@ -26,11 +30,15 @@ const Sidebar = () => {
       path: '/backlog',
       icon: ListTodo
     },
-    {
-      name: 'Weekly Sprints',
-      path: '/sprints',
-      icon: CalendarRange
-    },
+    ...(canManageSprints
+      ? [
+          {
+            name: 'Weekly Sprints',
+            path: '/sprints',
+            icon: CalendarRange
+          }
+        ]
+      : []),
     {
       name: 'Analytics Dashboard',
       path: '/dashboard',

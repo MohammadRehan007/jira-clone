@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useProject } from '../../context/ProjectContext';
 import { useToast } from '../../context/ToastContext';
 import axiosClient from '../../api/axiosClient';
@@ -7,10 +8,13 @@ import CreateSprintModal from './CreateSprintModal';
 import { CalendarRange, Play, CheckCircle, Plus, Clock, Target } from 'lucide-react';
 
 const SprintManager = () => {
+  const { user } = useAuth();
   const { activeProject, sprints, refreshProjectData, dataLoading } = useProject();
   const { addToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
+
+  const canManage = user?.role === 'Admin' || user?.role === 'ProjectLead';
 
   const handleStartSprint = async (sprintId) => {
     try {
@@ -53,9 +57,11 @@ const SprintManager = () => {
             Manage sprint cycles, start weekly sprints, and complete sprint goals for {activeProject?.name}
           </p>
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-          Create Sprint
-        </Button>
+        {canManage && (
+          <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+            Create Sprint
+          </Button>
+        )}
       </div>
 
       {/* Sprints Grid */}
@@ -99,29 +105,37 @@ const SprintManager = () => {
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-2">
               {s.status === 'Planned' && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={Play}
-                  isLoading={updatingId === s._id}
-                  onClick={() => handleStartSprint(s._id)}
-                  className="bg-emerald-600 hover:bg-emerald-700 w-full"
-                >
-                  Start Sprint
-                </Button>
+                canManage ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={Play}
+                    isLoading={updatingId === s._id}
+                    onClick={() => handleStartSprint(s._id)}
+                    className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                  >
+                    Start Sprint
+                  </Button>
+                ) : (
+                  <span className="text-xs text-slate-400 italic mx-auto">Planned Sprint</span>
+                )
               )}
 
               {s.status === 'Active' && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={CheckCircle}
-                  isLoading={updatingId === s._id}
-                  onClick={() => handleCompleteSprint(s._id)}
-                  className="w-full text-slate-700 hover:bg-slate-200"
-                >
-                  Complete Sprint
-                </Button>
+                canManage ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={CheckCircle}
+                    isLoading={updatingId === s._id}
+                    onClick={() => handleCompleteSprint(s._id)}
+                    className="w-full text-slate-700 hover:bg-slate-200"
+                  >
+                    Complete Sprint
+                  </Button>
+                ) : (
+                  <span className="text-xs text-emerald-600 font-semibold mx-auto">Sprint in progress</span>
+                )
               )}
 
               {s.status === 'Completed' && (
@@ -136,11 +150,15 @@ const SprintManager = () => {
             <CalendarRange className="w-12 h-12 text-slate-300 mb-3" />
             <h3 className="text-base font-bold text-slate-700">No Sprints Created Yet</h3>
             <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
-              Set up your first 1-week or 2-week sprint to start tracking team deliverables.
+              {canManage 
+                ? 'Set up your first 1-week or 2-week sprint to start tracking team deliverables.'
+                : 'No sprints have been created by Project Lead or Admin yet.'}
             </p>
-            <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-              Create First Sprint
-            </Button>
+            {canManage && (
+              <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+                Create First Sprint
+              </Button>
+            )}
           </div>
         )}
       </div>

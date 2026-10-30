@@ -12,7 +12,7 @@ import BacklogPage from './pages/BacklogPage';
 import SprintsPage from './pages/SprintsPage';
 import DashboardPage from './pages/DashboardPage';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
@@ -23,6 +23,9 @@ const ProtectedRoute = ({ children }) => {
   }
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/board" replace />;
   }
   return children;
 };
@@ -50,7 +53,14 @@ const App = () => {
                 <Route index element={<Navigate to="/board" replace />} />
                 <Route path="board" element={<BoardPage />} />
                 <Route path="backlog" element={<BacklogPage />} />
-                <Route path="sprints" element={<SprintsPage />} />
+                <Route
+                  path="sprints"
+                  element={
+                    <ProtectedRoute allowedRoles={['Admin', 'ProjectLead']}>
+                      <SprintsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="dashboard" element={<DashboardPage />} />
               </Route>
 
